@@ -2,55 +2,63 @@
 
 
 ## Pre-requisites
-1. Set up Avere vFXT
-    - Launch the Avere vFXT using ARM or in the Azure portal
-    - Download https://aka.ms/genomicsworkshop/sample_data as genomics_workshop_data.tar
-    - The default export mount on Avere is /msazure
-    - Make a subdir in the export point: /msazure/data
-    - Expand the genomics_workshop_data.tar into /msazure/data so that the data is in it shows as /msazure/data/genomics_workshop_data
-
-    _As an alternate to Avere, use the NFS server `/shared` in the cluster below. But the paths in the nextflow scripts and the instructions have to be modified._
+1. Verify data
+    - In the Maarifa POC cluster the data files have been downloaded to `/shared/genomics_workshop_data`
+    - If needed, it can be downloaded from https://aka.ms/genomicsworkshop/sample_data as genomics_workshop_data.tar
+        -- The default NFS export mount in the cluster is `/shared`
+        -- Expand the `genomics_workshop_data.tar` into `/shared` so that the data is in it shows as `/shared/genomics_workshop_data`
+        ```
+        cd /shared
+        wget -O genomics_workshop_data.tar https://aka.ms/genomicsworkshop/sample_data
+        tar xvf genomics_workshop_data.tar
+        rm genomics_workshop_data.tar
+        ```
 
 2. A CycleCloud installation
 
-    - Setup CycleCloud in the Avere vFXT subnet
-    - Clone/Download the HLS-workshop CycleCloud project (https://github.com/jermth/hls-workshop)
-    - Upload the hls-workshop project in CycleCloud
-    - Import the cluster template (cyclecloud import_template Genomics-Workshop -f Genomics-Workshop.cluster.txt)
+    - CycleCloud is already configured in the Maarifa POC environment (refer to Cyclecloud onbarding document)
+    - Storage options include:
+        -- Azure Files container mounted to `/work` (Persistent Storage)
+        -- Shared NFS directory mounted to `/shared` (Persisten Storage)
+        -- Local SSD on each compute node mounted to `/mnt` (Ephemeral Storage)
+    - A custom image was created that includes `miniconda2`, `docker` and `singularity`
+    - A conda environment named `shared_env` was created with the tools required for this exercise
 
-3. Launch the Genomics-Workshop cluster
+3. Connect to the Cyclecloud Slurm cluster
 
 ## Preamble
 
- 1. The cluster template sets up an SGE cluster
- 2. You'll need to change the Avere IPAddress in the cluster setup, but the other settings don't have to be set
-    - Leave the Avere mount point as /avere -- the example scripts below work on that assumption
- 3. This cluster has a couple of cluster-init projects defined that does the following:
-    - For installing docker runtime on each node
-    - Pulling a couple of biocontainer images for the examples
-    - Creating an /etc/profile.d script that stages the example netflow files and symlinking
- 4. The exercises illustrate the following:
-    - How to install packages using Conda. This is all in the user's home directories and available throughout the cluster.
+ 1. This cluster has a couple of cluster-init projects defined that does the following:
+    - Mounts a shared Azure Files container to `/work`
+    - Cyclecloud provisioned user accounts are added to the `docker` group for rootless Docker access
+ 2. The exercises illustrate the following:
+    - How to access packages using Conda. 
     - How to run docker images.
     - How to do the the above through nextflow
-    - How to use nextflow on the SGE
+    - How to use nextflow with the Slurm executor
 
 	
 ## Exercise 1: Datasets 
 
- 1. Log into the Cluster headnode
- 2. On first login, the `~/genomics-workshop/` directory is staged for the user
- 3. That directory has a symlink to the human genome index and sample Fastqs
+ 1. SSH into the Cluster headnode (ie. ssh username@10.0.3.133)
+ 2. The `/shared/genomics_workshop_data/` directory is pre-loaded for the exercises
+ 3. Verify that directory has the human genome index and sample Fastqs
     - bowtie2_index/grch38/
     - NA12787/
- 4. Verify the Avere mount there: 
 
-        ls /avere/data/genomics_workshop_data
- 6. The `~/genomics-workshop/` directory also carries two example nextflow files.
+ 4. Verify `/shared/genomics_workshop_data/` directory also contains two example nextflow files (and nextflow config files)
+    - bowtie2.local.nf
+    - nextflow.config
+    - bowtie2.container.nf
+    - nextflow.slurm.config
 
-## Exercise 2: Application install using Conda
+ 5. If the data is not there is can be downloaded and extracted from https://aka.ms/genomicsworkshop/sample_data 
 
-1. Install conda. This is done for the user account, so run the following as the user:
+## Exercise 2: Bowtie in Conda Environment using Slurm
+
+1. NOTE: steps 1 & 2 was already built into the image and is provided for Reference only (ie. if you want to create your own environment with these tools)
+
+2. Install conda. This is done for the user account, so run the following as the user:
 
     ```
     # Get the installer
@@ -77,28 +85,49 @@
     conda install -y bowtie2 samtools bcftools htop glances nextflow
     ```
 
-3. Run a local bowtie job with the conda tools
+3. Run a Slurm bowtie job with the conda tools
 
+    
+    Copy the sample job script named `bowtie-slurm.sh` to your home directory:
     ```
-    cd ~/genomics-workshop
-    mkdir exercise2
-
-    bowtie2 -x bowtie2_index/grch38/grch38_1kgmaj -1 NA12787/SRR622461_1.fastq.gz -2 NA12787/SRR622461_2.fastq.gz  -u 100000 -S exercise2/exercise2.sam
-
-    # view the file
-    head -n 50 exercise2/exercise2.sam
-
-    Convert the sam file into bam and sort it
-    samtools view -bS exercise2/exercise2.sam | samtools sort > exercise2/exercise2.bam
-
-    Generate a VCF from the bam
-    bcftools mpileup --no-reference exercise2/exercise2.bam > exercise2/exercise2.vcf
-
-    # view the VCF
-    head -n 50 exercise2/exercise2.vcf
+    cp /shared/genomics_workshop_data/bowtie-slurm.sh ~
     ```
 
-## Exercise 3: Docker
+    More details on Slurm job scripts: [SchedMD](https://slurm.schedmd.com/sbatch.html)
+    Slurm sbatch examples and directives: [UB-CCR](https://ubccr.freshdesk.com/support/solutions/articles/5000688140-submitting-a-slurm-job-script)
+
+    Submit the jobs as follows from the Slurm head node:
+    ```
+    $ sbatch bowtie-slurm.sh
+    Submitted batch job 19
+
+    $ squeue --job 19
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+                19       htc   bowtie jerry.mo CF       0:20      1 htc-1
+    ```
+
+    Output for this job will be written to `~/slurm-19.out` and a successful result will look as follows:
+    ```
+    100000 reads; of these:
+    100000 (100.00%) were paired; of these:
+    6616 (6.62%) aligned concordantly 0 times
+    63233 (63.23%) aligned concordantly exactly 1 time
+    30151 (30.15%) aligned concordantly >1 times
+    ----
+    6616 pairs aligned concordantly 0 times; of these:
+      525 (7.94%) aligned discordantly 1 time
+    ----
+    6091 pairs aligned 0 times concordantly or discordantly; of these:
+      12182 mates make up the pairs; of these:
+        8324 (68.33%) aligned 0 times
+        2141 (17.58%) aligned exactly 1 time
+        1717 (14.09%) aligned >1 times
+    95.84% overall alignment rate
+    [mpileup] 1 samples in 1 input files
+    [mpileup] maximum number of reads per input file set to -d 250
+    ```
+
+## Exercise 3: Bowtie in Docker Container on Slurm
 1. Run the same set of bowtie and samtools commands, but using Docker containers
 
     ```
@@ -109,29 +138,55 @@
 
     cd ~/genomics-workshop
     mkdir docker_results
-    docker run -u $(id -u ${USER}):$(id -g ${USER})  -v ~/genomics-workshop/docker_results:/results -v /avere/data/genomics_workshop_data:/data biocontainers/bowtie2:v2.3.1_cv1  bowtie2 -x bowtie2_index/grch38/grch38_1kgmaj -1 NA12787/SRR622461_1.fastq.gz -2 NA12787/SRR622461_2.fastq.gz  -u 100000 -S /results/exercise3.sam
+    cp /shared/genomics_workshop_data/slurm-job-template.sh docker-slurm.sh
+    
+    # change the job name to docker-bowtie
+    sed -i 's|bowtie|docker-bowtie|g' docker-slurm.sh
 
-    # if you have another window, run docker ps to see the container running
+    # add the Docker run command to the job script
+    cat << EOF >> docker-slurm.sh
+    docker run -u $(id -u ${USER}):$(id -g ${USER})  -v ~/genomics-workshop/docker_results:/results -v /shared/genomics_workshop_data:/data biocontainers/bowtie2:v2.3.1_cv1  bowtie2 -x bowtie2_index/grch38/grch38_1kgmaj -1 /data/NA12787/SRR622461_1.fastq.gz -2 /data/NA12787/SRR622461_2.fastq.gz  -u 100000 -S /results/exercise3.sam
 
-    docker run -u $(id -u ${USER}):$(id -g ${USER})  -v ~/genomics-workshop/docker_results:/results -v /avere/data/genomics_workshop_data:/data biocontainers/samtools:v1.7.0_cv4 /bin/bash -c "samtools view -bS /results/exercise3.sam | samtools sort -o /results/exercise3.bam"
+    docker run -u $(id -u ${USER}):$(id -g ${USER})  -v ~/genomics-workshop/docker_results:/results -v /shared/genomics_workshop_data:/data biocontainers/samtools:v1.7.0_cv4 /bin/bash -c "samtools view -bS /results/exercise3.sam | samtools sort -o /results/exercise3.bam"
+    EOF
+
+    # submit the script using sbatch command
+    sbatch docker-slurm.sh
     ```
+    Monitor the job and output as in Exercise 2
 
-## Exercise 4: Nextflow with conda tools
-1. Open and look at the bowtie.local.nf file. This nf file describes a workflow. The processes defined run the same set of commands in exercise2. Now however, the Nextflow workflow manager chains together the outputs.
+## Exercise 4: Nextflow with docker, on Slurm
+- Finally, use Nextflow with the Slurm scheduler by specifying the execution engine in the config file. 
+- Using the NF flow file, the docker tasks are submitted to the Slurm compute nodes. 
 
-2. Run the same set of applications locally using nextflow:
-	
-        nextflow run bowtie2.local.nf
+```
+    conda activate shared_env
 
-## Exercise 5: Nextflow with docker containers
-- Nextflow works with docker conainers as well. Look at the differences between bowtie2.container.nf and bowtie2.local.nf
+    nextflow -c /shared/genomics_workshop_data/nextflow.slurm.config run /shared/genomics_workshop_data/bowtie2.container.nf
 
-        nextflow run bowtie2.container.nf
-
-## Exercise 6: Nextflow with docker, on SGE
-- Finally, use Nextflow with the SGE scheduler by specifying the execution engine in the config file. 
-- Using the same NF flow file, the docker tasks are now submitted to the SGE compute nodes. 
-
-        nextflow -c nextflow.sge.config run bowtie2.container.nf
-- Verify that the job is in queue by using the `qstat -f` command
+- Verify that the job is in queue by using the `squeue` command
 - Notice also that the autoscaler kicks in and scales up a compute node.
+
+- Successful output will look like this:
+```
+N E X T F L O W  ~  version 20.07.1
+Launching `/shared/genomics_workshop_data/bowtie2.container.nf` [cheesy_easley] - revision: e62788e7d0
+
+==========================================================
+ Microsoft Azure Genomics Workshop 
+==========================================================
+Data Dir                       : /shared/genomics_workshop_data
+reads                          : /shared/genomics_workshop_data/NA12787/SRR622461_{1,2}.fastq.gz
+Number of reads to process:    : 100000
+bowtie2_index                  : /shared/genomics_workshop_data/bowtie2_index/grch38/grch38_1kgmaj
+Resultdir                      : ~/genomics-workshop/results
+Results prefix                 : exercise4
+executor >  slurm (3)
+[44/cd0c1f] process > runBowtie2 (1) [100%] 1 of 1 ✔
+[45/bc92fa] process > samToBam (1)   [100%] 1 of 1 ✔
+[7a/0384bc] process > bamToVCF (1)   [100%] 1 of 1 ✔
+Completed at: 15-Oct-2020 19:02:49
+Duration    : 5m 26s
+CPU hours   : (a few seconds)
+Succeeded   : 3
+```
