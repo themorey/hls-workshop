@@ -5,8 +5,8 @@
 1. Verify data
     - In the Maarifa POC cluster the data files have been downloaded to `/shared/genomics_workshop_data`
     - If needed, it can be downloaded from https://aka.ms/genomicsworkshop/sample_data as genomics_workshop_data.tar
-        -- The default NFS export mount in the cluster is `/shared`
-        -- Expand the `genomics_workshop_data.tar` into `/shared` so that the data is in it shows as `/shared/genomics_workshop_data`
+        - The default NFS export mount in the cluster is `/shared`
+        - Expand the `genomics_workshop_data.tar` into `/shared` so that the data is in it shows as `/shared/genomics_workshop_data`
 	
         ```
         cd /shared
@@ -19,9 +19,9 @@
 
     - CycleCloud is already configured in the Maarifa POC environment (refer to Cyclecloud onbarding document)
     - Storage options include:
-        -- Azure Files container mounted to `/work` (Persistent Storage)
-        -- Shared NFS directory mounted to `/shared` (Persisten Storage)
-        -- Local SSD on each compute node mounted to `/mnt` (Ephemeral Storage)
+        - Azure Files container mounted to `/work` (Persistent Storage)
+        - Shared NFS directory mounted to `/shared` (Persisten Storage)
+        - Local SSD on each compute node mounted to `/mnt` (Ephemeral Storage)
     - A custom image was created that includes `miniconda2`, `docker` and `singularity`
     - A conda environment named `shared_env` was created with the tools required for this exercise
 
