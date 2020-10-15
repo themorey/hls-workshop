@@ -158,10 +158,9 @@
     conda activate shared_env
 
     nextflow -c /shared/genomics_workshop_data/nextflow.slurm.config run /shared/genomics_workshop_data/bowtie2.container.nf
-
+```
 - Verify that the job is in queue by using the `squeue` command
 - Notice also that the autoscaler kicks in and scales up a compute node.
-
 - Successful output will look like this:
 ```
 N E X T F L O W  ~  version 20.07.1
