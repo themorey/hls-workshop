@@ -20,22 +20,21 @@
     - CycleCloud is already configured in the Maarifa POC environment (refer to Cyclecloud onbarding document)
     - Storage options include:
         - Azure Files container mounted to `/work` (Persistent Storage)
-        - Shared NFS directory mounted to `/shared` (Persisten Storage)
+        - Shared NFS directory mounted to `/shared` (Persistent Storage)
         - Local SSD on each compute node mounted to `/mnt` (Ephemeral Storage)
     - A custom image was created that includes `miniconda2`, `docker` and `singularity`
-    - A conda environment named `shared_env` was created with the tools required for this exercise
+    - A shared conda environment named `shared_env` was created with the tools required for this exercise
 
 3. Connect to the Cyclecloud Slurm cluster
 
 ## Preamble
 
- 1. This cluster has a couple of cluster-init projects defined that does the following:
+ 1. This cluster has a couple of cluster-init projects defined that do the following:
     - Mounts a shared Azure Files container to `/work`
-    - Cyclecloud provisioned user accounts are added to the `docker` group for rootless Docker access
+    - Adds Cyclecloud provisioned user accounts to the `docker` group for rootless Docker access
  2. The exercises illustrate the following:
     - How to access packages using Conda. 
-    - How to run docker images.
-    - How to do the the above through nextflow
+    - How to submit jobs to Slurm (with and without Docker)
     - How to use nextflow with the Slurm executor
 
 	
@@ -132,11 +131,6 @@
 1. Run the same set of bowtie and samtools commands, but using Docker containers
 
     ```
-    # view the docker images on this VM
-    docker image list
-
-    # Run bowtie2 again, but now using the container instead of the conda install binary
-
     cd ~/genomics-workshop
     mkdir docker_results
     cp /shared/genomics_workshop_data/slurm-job-template.sh docker-slurm.sh
