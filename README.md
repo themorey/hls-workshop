@@ -7,6 +7,7 @@
     - If needed, it can be downloaded from https://aka.ms/genomicsworkshop/sample_data as genomics_workshop_data.tar
         -- The default NFS export mount in the cluster is `/shared`
         -- Expand the `genomics_workshop_data.tar` into `/shared` so that the data is in it shows as `/shared/genomics_workshop_data`
+	
         ```
         cd /shared
         wget -O genomics_workshop_data.tar https://aka.ms/genomicsworkshop/sample_data
