@@ -52,7 +52,7 @@
     - bowtie2.container.nf
     - nextflow.slurm.config
 
- 5. If the data is not there is can be downloaded and extracted from https://aka.ms/genomicsworkshop/sample_data 
+ 5. If the data is not there is can be downloaded and extracted as `wget -O genomics_workshop_data.tar https://aka.ms/genomicsworkshop/sample_data` 
 
 ## Exercise 2: Bowtie in Conda Environment using Slurm
 
